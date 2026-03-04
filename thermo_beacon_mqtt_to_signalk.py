@@ -31,7 +31,7 @@ from tb_protocol import *
 #
 
 # create logger with 'spam_application'
-logger = logging.getLogger('ThermoBeaconMQTTtoSignalK')
+logger = logging.getLogger('ThermoBeaconSignalkViaMqtt')
 logger.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
