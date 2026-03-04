@@ -8,7 +8,7 @@
 #   Date            :   04/03/2026
 #   Author          :   Ivko Kalchev, Simon Thompson
 #   Copyright       :   (c) 2021 Ivko Kalchev, (c) Simon Thompson 2025
-#   Dependencies    :   sys, re, json, asyncio, argparse, bleak, paho.mqtt.client
+#   Dependencies    :   sys, re, json, asyncio, argparse, bleak, paho.mqtt.client, thermo_beacon_protocol
 #
 
 #
@@ -24,7 +24,7 @@ import logging
 #
 #   AUTHOR IMPORTS
 #
-from tb_protocol import *
+import thermo_beacon_protocol as tbp
 
 #
 #   CONSTANTS
@@ -123,11 +123,11 @@ def detection_callback(device, advertisement_data):
         bvalue = msg[key]
         mac = device.address.lower()
         if len(bvalue)==18:
-            data = TBAdvData(key, bvalue)
+            data = tbp.TBAdvData(key, bvalue)
             print('[{0}] [{6:02x}] T= {1:5.2f}\xb0C, H = {2:3.2f}%, Button:{4}, Battery : {5:02.0f}%, UpTime = {3:8.0f}s'.\
                   format(mac, data.tmp, data.hum, data.upt, 'On ' if data.btn else 'Off', data.btr, data.id))
         else:
-            data = TBAdvMinMax(key, bvalue)
+            data = tbp.TBAdvMinMax(key, bvalue)
             print('[{0}] [{5:02x}] Max={1:5.2f}\xb0C at {2:.0f}s, Min={3:5.2f}\xb0C at {4:.0f}s'.\
                   format(mac, data.max, data.max_t, data.min, data.min_t, data.id))
 
@@ -154,18 +154,18 @@ async def _dump(address):
     try:
         print(client.is_connected)
 
-        cmd = TBCmdQuery()
+        cmd = tbp.TBCmdQuery()
         await client.write_gatt_char(TX_CHAR_UUID, cmd.get_msg())
         data = await client.read_gatt_char(RX_CHAR_UUID)
-        resp = TBMsgQuery(data)
+        resp = tbp.TBMsgQuery(data)
         print('01:'+data.hex())
 
         await client.start_notify(RX_CHAR_UUID, dump_callback)
-        cmd_dump = bytes([TB_COMMAND_DUMP, 0, 0, resp.count&0xff, (resp.count>>8)&0xff, (resp.count>>16)&0xff, 1])
+        cmd_dump = bytes([tbp.TB_COMMAND_DUMP, 0, 0, resp.count&0xff, (resp.count>>8)&0xff, (resp.count>>16)&0xff, 1])
         cnt = 0
         while cnt<resp.count:
             c = 15 if resp.count-cnt>15 else resp.count-cnt
-            cmd = TBCmdDump(cnt, c)
+            cmd = tbp.TBCmdDump(cnt, c)
             cmd_dump = cmd.get_msg()
             cnt += c
             #print('cmd ', cmd_dump.hex())
@@ -184,7 +184,7 @@ def dump_callback(sender: int, data: bytearray):
         return
     try:
         hdata = data.hex()
-        msg = TBMsgDump(data)
+        msg = tbp.TBMsgDump(data)
         print(msg.offset, msg.count, msg.data)
         #print(f"{sender}: {hdata}")
     except Exception as exc:
@@ -211,7 +211,7 @@ async def _identify(address):
         return
 
     try:
-        cmd = TBCmdIdentify()
+        cmd = tbp.TBCmdIdentify()
         await client.write_gatt_char(TX_CHAR_UUID, cmd.get_msg())
     finally:
         await client.disconnect()
@@ -319,7 +319,7 @@ class QueryProxy:
                 continue
             if len(bvalue)==18:
                 self.QueryResults.clear()
-                data = TBAdvData(key, bvalue)
+                data = tbp.TBAdvData(key, bvalue)
                 self.QueryResults["mac"] = mac
                 self.QueryResults["temp"] = round(float(data.tmp),2)
                 self.QueryResults["relhum"] = round(float(data.hum),2)
