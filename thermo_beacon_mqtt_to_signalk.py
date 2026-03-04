@@ -33,6 +33,7 @@ TX_CHAR_UUID = '0000fff5-0000-1000-8000-00805F9B34FB'
 #Read Handle 0x0024
 RX_CHAR_UUID = '0000fff3-0000-1000-8000-00805F9B34FB'
 
+mqttPrefix = "W/signalk/"
 
 #
 #   FUNCTIONS
@@ -215,6 +216,31 @@ def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
     client.publish(topic = topic, payload = Result, qos = 1)
     client.disconnect()
 
+def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, location, outside):
+    topicStr = mqttPrefix + mmsi + "/environment/"
+    if outside:
+        topicStr += "outside/"
+    else:
+        topicStr += "inside/"
+    topicStr += location + "/"
+
+    # Temperature
+    topicTemp = topicStr + "temperature"
+    print("Publishing to topic: " + topicTemp)
+    # Humidity  
+    topicHum = topicStr + "humidity"
+    print("Publishing to topic: " + topicHum)
+
+
+    #Result = str(query(SensorMac, SensorQueryDuration_s))
+    #if len(Result) == 0:
+    #    return
+    #client = mqtt.Client()
+    #client.connect(host = broker, port = port)
+    #client.loop_start()
+    #client.publish(topic = topic, payload = Result, qos = 1)
+    #client.disconnect()
+
 '''
 The query function queries the device for details and returns the results as a dictionary. This is used by the mqtt function to retrieve data from the device and send it via mqtt
 '''
@@ -299,6 +325,8 @@ def main():
         print(Result)
     elif cmd=='mqtt':
         send_mqtt(args.mac, args.t, args.broker, args.port, args.topic)
+    elif cmd=='signalk':
+        send_signalk_via_mqtt(args.mac, args.t, args.broker, args.port, args.mmsi, args.location, args.outside)
     else:
         print('Not yet implemented')
 
