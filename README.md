@@ -1,4 +1,4 @@
-#  Bluetooth scanner for ThermoBeacon BLE devices.
+#  Bluetooth scanner for ThermoBeacon BLE devices with transmission to SignalK server via MQTT
 
 ## Prerequisites
 ### 1. This command line tool requires Python 3.7 or greater.
@@ -18,6 +18,7 @@
         dump                Dump logged data
         query               Query device for details
         mqtt                Send data via mqtt
+        signalk             Send data to SignalK server via MQTT
 
     optional arguments:
       -h, --help            show this help message and exit

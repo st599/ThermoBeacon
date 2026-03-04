@@ -1,4 +1,15 @@
+#!/usr/bin/env python3
 
+#
+#   THERMOBEACON TO SIGNALK MQTT GATEWAY
+#
+#   Filename        :   tb_protocol.py
+#   Description     :   Protocol definitions for ThermoBeacon devices
+#   Date            :   04/03/2026
+#   Author          :   Ivko Kalchev, Simon Thompson
+#   Copyright       :   (c) 2021 Ivko Kalchev, (c) Simon Thompson 2025
+#   Dependencies    :
+#
 '''
 decode temperature value from byte(2) array
 '''

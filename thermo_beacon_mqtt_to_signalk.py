@@ -1,77 +1,90 @@
 #!/usr/bin/env python3
 
+#
+#   THERMOBEACON TO SIGNALK MQTT GATEWAY
+#
+#   Filename        :   thermo_beacon_mqtt_to_signalk.py
+#   Description     :   Sends ThermoBeacon data to MQTT Gateway
+#   Date            :   04/03/2026
+#   Author          :   Ivko Kalchev, Simon Thompson
+#   Copyright       :   (c) 2021 Ivko Kalchev, (c) Simon Thompson 2025
+#   Dependencies    :   sys, re, json, asyncio, argparse, bleak, paho.mqtt.client
+#
+
+#
+#   SYSTEM IMPORTS
+#
 import sys, re, json, asyncio
 from argparse import ArgumentParser, Namespace
 import bleak
-
 import paho.mqtt.client as mqtt
-
-
 from bleak import BleakClient, BleakScanner
+
+#
+#   AUTHOR IMPORTS
+#
 from tb_protocol import *
 
+#
+#   CONSTANTS
+#
 #Transmit Handle 0x0021
 TX_CHAR_UUID = '0000fff5-0000-1000-8000-00805F9B34FB'
 #Read Handle 0x0024
 RX_CHAR_UUID = '0000fff3-0000-1000-8000-00805F9B34FB'
 
 
+#
+#   FUNCTIONS
+#
 def mac_addr(x):
     x = x.lower()
     if not re.match("^(?:[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){4}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$", x):
         raise ValueError()
     return x
 
+'''
+Config parser for command line arguments
+'''
+# Moved in to function ST 04/03/26
+def config_parser():
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers(help='action', dest='command', required=True)
 
-parser = ArgumentParser()
-subparsers = parser.add_subparsers(help='action', dest='command', required=True)
+    sub = subparsers.add_parser('scan', help = "Scan for ThermoBeacon devices")
+    sub.add_argument('-mac', type=mac_addr, required=False)
+    sub.add_argument('-t', type=int, default = 20, metavar='<Scan duration, seconds>', required=False)
+    sub = subparsers.add_parser('identify', help = "Identify a device")
+    sub.add_argument('-mac', type=mac_addr, required=True)
+    sub = subparsers.add_parser('dump', help = "Dump logged data")
+    sub.add_argument('-mac', type=mac_addr, required=True)
+    sub = subparsers.add_parser('query', help = "Query device for details")
+    sub.add_argument('-mac', type=mac_addr, required=True)
+    sub.add_argument('-t', type=int, default = 3, metavar='<Query duration, seconds>', required=False)
+    sub = subparsers.add_parser('mqtt', help = "Send data via mqtt")
+    sub.add_argument('-mac', type=mac_addr, required=True)
+    sub.add_argument('-t', type=int, default = 3, metavar='<Query duration, seconds>', required=False)
+    sub.add_argument('-broker', required=True)
+    sub.add_argument('-port', type=int, required=True)
+    sub.add_argument('-topic', required=True)
+    sub = subparsers.add_parser('signalk', help = "Send data to SignalK via mqtt")
+    sub.add_argument('-mac', type=mac_addr, required=True)
+    sub.add_argument('-t', type=int, default = 3, metavar='<Query duration, seconds>', required=False)
+    sub.add_argument('-broker', required=True)
+    sub.add_argument('-port', type=int, required=True)
+    sub.add_argument('-mmsi', required=True)
+    sub.add_argument('-location', required=True)
+    sub.add_argument('--outside', action='store_true', help='Indicates that the sensor is outside the boat. ' \
+    'This will change the SignalK path to "environment.outside" instead of "environment.inside"')
 
-sub = subparsers.add_parser('scan', help = "Scan for ThermoBeacon devices")
-sub.add_argument('-mac', type=mac_addr, required=False)
-sub.add_argument('-t', type=int, default = 20, metavar='<Scan duration, seconds>', required=False)
-sub = subparsers.add_parser('identify', help = "Identify a device")
-sub.add_argument('-mac', type=mac_addr, required=True)
-sub = subparsers.add_parser('dump', help = "Dump logged data")
-sub.add_argument('-mac', type=mac_addr, required=True)
-sub = subparsers.add_parser('query', help = "Query device for details")
-sub.add_argument('-mac', type=mac_addr, required=True)
-sub.add_argument('-t', type=int, default = 3, metavar='<Query duration, seconds>', required=False)
-sub = subparsers.add_parser('mqtt', help = "Send data via mqtt")
-sub.add_argument('-mac', type=mac_addr, required=True)
-sub.add_argument('-t', type=int, default = 3, metavar='<Query duration, seconds>', required=False)
-sub.add_argument('-broker', required=True)
-sub.add_argument('-port', type=int, required=True)
-sub.add_argument('-topic', required=True)
+    args = parser.parse_args()
 
-
-args = parser.parse_args()
-
-#print(args.command)
-
-
-def main():
-    cmd = args.command
-    if cmd=='scan':
-        try:
-            asyncio.run(scan())
-        except KeyboardInterrupt:
-            print()
-            return
-    elif cmd=='identify':
-        identify(args.mac)
-        return
-    elif cmd=='dump':
-        dump(args.mac)
-        return
-    elif cmd=='query':
-        Result = query(args.mac, args.t)
-        print(Result)
-    elif cmd=='mqtt':
-        send_mqtt(args.mac, args.t, args.broker, args.port, args.topic)
-    else:
-        print('Not yet implemented')
+    return args
 
 
+'''
+asyncio scan for devices. This is used by the query function to find devices
+'''
 async def scan():
     scanner = BleakScanner(detection_callback)
     await scanner.start()
@@ -79,6 +92,9 @@ async def scan():
     await scanner.stop()
 
 
+'''
+callback for device detection. This is used by the scan function to find devices and print their details
+'''
 def detection_callback(device, advertisement_data):
     name = advertisement_data.local_name
     if name is None:
@@ -101,6 +117,7 @@ def detection_callback(device, advertisement_data):
 
 
 '''
+dump logged data from the device. This is used by the dump function to retrieve logged data from the device and print it
 '''
 def dump(address):
     try:
@@ -143,6 +160,9 @@ async def _dump(address):
     finally:
         await client.disconnect()
 
+'''
+callback for dump data. This is used by the dump function to retrieve logged data from the device and print it
+'''
 def dump_callback(sender: int, data: bytearray):
     if data is None:
         return
@@ -155,6 +175,7 @@ def dump_callback(sender: int, data: bytearray):
         print(str(exc))
 
 '''
+Identify the device. This is used by the identify function to send an identify command to the device and print the response
 '''
 def identify(address):
     try:
@@ -195,6 +216,7 @@ def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
     client.disconnect()
 
 '''
+The query function queries the device for details and returns the results as a dictionary. This is used by the mqtt function to retrieve data from the device and send it via mqtt
 '''
 def query(SensorMac, SensorQueryDuration_s):
     proxy = QueryProxy(SensorMac)
@@ -206,13 +228,18 @@ def query(SensorMac, SensorQueryDuration_s):
         return
     return(proxy.QueryResults)
 
-
+'''
+asyncio query for device details. This is used by the query function to retrieve data from the device and store it in the QueryProxy object
+'''
 async def async_query(SensorQueryDuration_s, proxy):
     scanner = BleakScanner(proxy.query_callback)
     await scanner.start()
     await asyncio.sleep(SensorQueryDuration_s)
     await scanner.stop()
 
+'''
+QueryProxy class to store query results. This is used by the query function to store data retrieved from the device and return it as a dictionary
+'''
 class QueryProxy:
     def __init__(self, _target_mac):
         self.QueryResults = dict()
@@ -248,6 +275,32 @@ class QueryProxy:
                 #      format(mac, data.max, data.max_t, data.min, data.min_t, data.id))
 
 
+
+#
+#   MAIN
+#
+def main():
+    args = config_parser()
+    cmd = args.command
+    if cmd=='scan':
+        try:
+            asyncio.run(scan())
+        except KeyboardInterrupt:
+            print()
+            return
+    elif cmd=='identify':
+        identify(args.mac)
+        return
+    elif cmd=='dump':
+        dump(args.mac)
+        return
+    elif cmd=='query':
+        Result = query(args.mac, args.t)
+        print(Result)
+    elif cmd=='mqtt':
+        send_mqtt(args.mac, args.t, args.broker, args.port, args.topic)
+    else:
+        print('Not yet implemented')
 
 if __name__ == '__main__':
     main()
