@@ -29,24 +29,18 @@ import thermo_beacon_protocol as tbp
 #
 #   CONSTANTS
 #
-
-# create logger with 'spam_application'
+mqttPrefix = "W/signalk/"
 logger = logging.getLogger('ThermoBeaconSignalkViaMqtt')
 logger.setLevel(logging.DEBUG)
-# create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-# create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
-# add the handlers to the logger
 logger.addHandler(ch)
 #Transmit Handle 0x0021
 TX_CHAR_UUID = '0000fff5-0000-1000-8000-00805F9B34FB'
 #Read Handle 0x0024
 RX_CHAR_UUID = '0000fff3-0000-1000-8000-00805F9B34FB'
-
-mqttPrefix = "W/signalk/"
 
 #
 #   FUNCTIONS
