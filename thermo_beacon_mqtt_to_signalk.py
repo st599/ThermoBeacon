@@ -217,29 +217,47 @@ def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
     client.disconnect()
 
 def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, location, outside):
-    topicStr = mqttPrefix + mmsi + "/environment/"
+
+    print("...SignalK via MQTT Gateway")
+    # Generate the topic string based on the mmsi, location and whether the sensor is outside or inside the boat. 
+    # The topic string will be in the format "W/signalk/{mmsi}/
+    topicStr = mqttPrefix + str(mmsi) + "/environment/"
     if outside:
         topicStr += "outside/"
     else:
         topicStr += "inside/"
         topicStr += location + "/"
 
-    # Temperature
-    topicTemp = topicStr + "temperature"
-    print("Publishing to topic: " + topicTemp + " value: ")
-    # Humidity  
-    topicHum = topicStr + "relativeHumidity"
-    print("Publishing to topic: " + topicHum + " value: ")
-
-
+    # Call the query function to retrieve data from the device. The query function will return a dictionary 
+    # with the data retrieved from the device.
     #Result = str(query(SensorMac, SensorQueryDuration_s))
     #if len(Result) == 0:
     #    return
-    #client = mqtt.Client()
-    #client.connect(host = broker, port = port)
-    #client.loop_start()
-    #client.publish(topic = topic, payload = Result, qos = 1)
-    #client.disconnect()
+    #temp_c = Result["temp"]
+    #rel_hum = Result["relhum"]
+    temp_c = 25.2
+    rel_hum = 60.2
+
+    # Send the data via mqtt to the SignalK server. The topic will be based on the mmsi, location and whether 
+    # the sensor is outside or inside the boat. The payload will be the temperature and humidity values retrieved from the device.
+    print("......Opening Connection to MQTT Broker: " + broker + ":" + str(port))
+    client = mqtt.Client()
+    client.connect(host = broker, port = port)
+    # Temperature
+    topicTemp = topicStr + "temperature"
+    print(".........Publishing to topic: " + topicTemp + " value: " + str(temp_c))
+    client.publish(topic = topicTemp, payload = temp_c, qos = 1)
+    client.disconnect()
+
+    client = mqtt.Client()
+    client.connect(host = broker, port = port)
+    # Humidity  
+    topicHum = topicStr + "relativeHumidity"
+    print(".........Publishing to topic: " + topicHum + " value: " + str(rel_hum))
+    client.publish(topic = topicHum, payload = rel_hum, qos = 1)
+    client.disconnect()
+    
+    print("......Data published to MQTT Broker and connection closed")
 
 '''
 The query function queries the device for details and returns the results as a dictionary. This is used by the mqtt function to retrieve data from the device and send it via mqtt
