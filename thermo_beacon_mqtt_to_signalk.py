@@ -226,10 +226,10 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
 
     # Temperature
     topicTemp = topicStr + "temperature"
-    print("Publishing to topic: " + topicTemp)
+    print("Publishing to topic: " + topicTemp + " value: ")
     # Humidity  
     topicHum = topicStr + "humidity"
-    print("Publishing to topic: " + topicHum)
+    print("Publishing to topic: " + topicHum + " value: ")
 
 
     #Result = str(query(SensorMac, SensorQueryDuration_s))
