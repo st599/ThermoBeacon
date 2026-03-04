@@ -112,6 +112,7 @@ def config_parser():
 asyncio scan for devices. This is used by the query function to find devices
 '''
 async def scan():
+    logger.info("Starting BLE scan for ThermoBeacon devices")
     scanner = BleakScanner(detection_callback)
     await scanner.start()
     await asyncio.sleep(540)
@@ -146,6 +147,7 @@ def detection_callback(device, advertisement_data):
 dump logged data from the device. This is used by the dump function to retrieve logged data from the device and print it
 '''
 def dump(address):
+    logger.info("Dumping data for device with MAC address: " + address)
     try:
         asyncio.run(_dump(address))
     except bleak.exc.BleakDBusError as dber:
@@ -204,6 +206,7 @@ def dump_callback(sender: int, data: bytearray):
 Identify the device. This is used by the identify function to send an identify command to the device and print the response
 '''
 def identify(address):
+    logger.info("Identifying device with MAC address: " + address)
     try:
         asyncio.run(_identify(address))
     except bleak.exc.BleakDBusError as dber:
@@ -231,15 +234,34 @@ Thanks to Andreas Schmitz (Andy) two new commands implemented below: query, mqtt
 The mqtt command queries the values and then publishes via mqtt
 '''
 def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
+    # Call the query function to retrieve data from the device. The query function will return a dictionary with 
+    # the data retrieved from the device.
+    logger.info("Querying device for data...")
     Result = str(query(SensorMac, SensorQueryDuration_s))
     if len(Result) == 0:
+        logger.warning("No data retrieved from device. MQTT publish will be skipped.")
         return
-    client = mqtt.Client()
+    logger.info("Data retrieved from device: " + Result)
+
+    # Send the data via mqtt to the specified broker and topic. The payload will be the string 
+    # representation of the dictionary returned by the query function.
+    logger.info("Opening connection to MQTT Broker: " + broker + ":" + str(port))
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.connect(host = broker, port = port)
-    #FIXME add user, passwd
-    client.loop_start()
+    logger.info("Publishing to topic: " + topic + " value: " + Result)
     client.publish(topic = topic, payload = Result, qos = 1)
     client.disconnect()
+
+    logger.info("Data published to MQTT Broker and connection closed")
+
+'''
+The send_signalk_via_mqtt function sends data from a sensor to a SignalK server via MQTT. 
+It takes the sensor's MAC address, the duration for which to query the sensor, the MQTT broker 
+and port to connect to, the MMSI of the boat, the location of the sensor on the boat and whether 
+the sensor is outside or inside the boat as arguments. It retrieves data from the sensor using the 
+query function and then publishes the temperature and humidity values to the MQTT broker using a topic 
+based on the MMSI, location and whether the sensor is outside or inside the boat.
+'''
 
 def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, location, outside):
     # Generate the topic string based on the mmsi, location and whether the sensor is outside or inside the boat. 
@@ -258,6 +280,7 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
     logger.info("Querying device for data...")
     #Result = str(query(SensorMac, SensorQueryDuration_s))
     #if len(Result) == 0:
+    #   logger.warning("No data retrieved from device. MQTT publish will be skipped.")
     #    return
     #temp_c = Result["temp"]
     #rel_hum = Result["relhum"]
