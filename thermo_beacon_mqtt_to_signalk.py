@@ -53,6 +53,7 @@ mqttPrefix = "W/signalk/"
 #
 
 def intro():
+    print("")
     print("THERMOBEACON TO SIGNALK VIA MQTT GATEWAY")
     print("")
     print("Author: Ivko Kalchev, Simon Thompson")
