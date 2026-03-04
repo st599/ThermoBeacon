@@ -19,6 +19,7 @@ from argparse import ArgumentParser, Namespace
 import bleak
 import paho.mqtt.client as mqtt
 from bleak import BleakClient, BleakScanner
+import logging
 
 #
 #   AUTHOR IMPORTS
@@ -28,12 +29,26 @@ from tb_protocol import *
 #
 #   CONSTANTS
 #
+
+# create logger with 'spam_application'
+logger = logging.getLogger('ThermoBeaconMQTTtoSignalK')
+logger.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(ch)
 #Transmit Handle 0x0021
 TX_CHAR_UUID = '0000fff5-0000-1000-8000-00805F9B34FB'
 #Read Handle 0x0024
 RX_CHAR_UUID = '0000fff3-0000-1000-8000-00805F9B34FB'
 
 mqttPrefix = "W/signalk/"
+
+
 
 #
 #   FUNCTIONS
@@ -49,6 +64,7 @@ Config parser for command line arguments
 '''
 # Moved in to function ST 04/03/26
 def config_parser():
+    logger.info("Parsing command line arguments")
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(help='action', dest='command', required=True)
 
@@ -217,8 +233,6 @@ def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
     client.disconnect()
 
 def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, location, outside):
-
-    print("...SignalK via MQTT Gateway")
     # Generate the topic string based on the mmsi, location and whether the sensor is outside or inside the boat. 
     # The topic string will be in the format "W/signalk/{mmsi}/
     topicStr = mqttPrefix + str(mmsi) + "/environment/"
@@ -230,6 +244,9 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
 
     # Call the query function to retrieve data from the device. The query function will return a dictionary 
     # with the data retrieved from the device.
+
+#TODO - the query function is currently returning a string representation of the dictionary. This needs to be fixed to return the dictionary itself so that we can access the temperature and humidity values directly.
+    logger.info("Querying device for data...")
     #Result = str(query(SensorMac, SensorQueryDuration_s))
     #if len(Result) == 0:
     #    return
@@ -240,24 +257,24 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
 
     # Send the data via mqtt to the SignalK server. The topic will be based on the mmsi, location and whether 
     # the sensor is outside or inside the boat. The payload will be the temperature and humidity values retrieved from the device.
-    print("......Opening Connection to MQTT Broker: " + broker + ":" + str(port))
-    client = mqtt.Client()
+    logger.info("Opening connection to MQTT Broker: " + broker + ":" + str(port))
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.connect(host = broker, port = port)
     # Temperature
     topicTemp = topicStr + "temperature"
-    print(".........Publishing to topic: " + topicTemp + " value: " + str(temp_c))
+    logger.info("Publishing to topic: " + topicTemp + " value: " + str(temp_c))
     client.publish(topic = topicTemp, payload = temp_c, qos = 1)
     client.disconnect()
 
-    client = mqtt.Client()
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.connect(host = broker, port = port)
     # Humidity  
     topicHum = topicStr + "relativeHumidity"
-    print(".........Publishing to topic: " + topicHum + " value: " + str(rel_hum))
+    logger.info("Publishing to topic: " + topicHum + " value: " + str(rel_hum))
     client.publish(topic = topicHum, payload = rel_hum, qos = 1)
     client.disconnect()
     
-    print("......Data published to MQTT Broker and connection closed")
+    logger.info("Data published to MQTT Broker and connection closed")
 
 '''
 The query function queries the device for details and returns the results as a dictionary. This is used by the mqtt function to retrieve data from the device and send it via mqtt
@@ -324,29 +341,36 @@ class QueryProxy:
 #   MAIN
 #
 def main():
+    logger.info("Starting ThermoBeacon MQTT to SignalK Gateway")
     args = config_parser()
     cmd = args.command
     if cmd=='scan':
+        logger.info("Scanning for ThermoBeacon devices...")
         try:
             asyncio.run(scan())
         except KeyboardInterrupt:
             print()
             return
     elif cmd=='identify':
+        logger.info("Identifying device with MAC address: " + args.mac)
         identify(args.mac)
         return
     elif cmd=='dump':
+        logger.info("Dumping data for device with MAC address: " + args.mac)
         dump(args.mac)
         return
     elif cmd=='query':
+        logger.info("Querying device with MAC address: " + args.mac)
         Result = query(args.mac, args.t)
         print(Result)
     elif cmd=='mqtt':
+        logger.info("Sending data via MQTT from device with MAC address: " + args.mac)
         send_mqtt(args.mac, args.t, args.broker, args.port, args.topic)
     elif cmd=='signalk':
+        logger.info("Sending data to SignalK via MQTT from device with MAC address: " + args.mac)
         send_signalk_via_mqtt(args.mac, args.t, args.broker, args.port, args.mmsi, args.location, args.outside)
     else:
-        print('Not yet implemented')
+        logger.warning("Command not yet implemented")
 
 if __name__ == '__main__':
     main()
