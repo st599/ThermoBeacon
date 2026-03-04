@@ -251,8 +251,13 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
     #    return
     #temp_c = Result["temp"]
     #rel_hum = Result["relhum"]
+    #battery = Result["battery"]
+    #uptime = Result["uptime"]
     temp_c = 25.2
     rel_hum = 60.2
+    battery = 80.0
+    uptime = 3600
+    logger.info("Data retrieved from device: Temperature: " + str(temp_c) + "C, Relative Humidity: " + str(rel_hum) + "%, Battery: " + str(battery) + "%, Uptime: " + str(uptime) + "s")
 
     # Send the data via mqtt to the SignalK server. The topic will be based on the mmsi, location and whether 
     # the sensor is outside or inside the boat. The payload will be the temperature and humidity values retrieved from the device.
