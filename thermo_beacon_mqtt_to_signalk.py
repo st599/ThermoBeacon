@@ -51,6 +51,21 @@ mqttPrefix = "W/signalk/"
 #
 #   FUNCTIONS
 #
+
+def intro():
+    print("THERMOBEACON TO SIGNALK VIA MQTT GATEWAY")
+    print("")
+    print("Author: Ivko Kalchev, Simon Thompson")
+    print("Copyright (c) 2021 Ivko Kalchev, (c) Simon Thompson 2026")
+    print("License: MIT License")
+    print("")
+    print("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.")   
+    print("")
+
+
+'''
+Helper function to validate MAC address format. This is used by the config parser to validate the MAC address provided as an argument
+'''
 def mac_addr(x):
     x = x.lower()
     if not re.match("^(?:[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){4}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$", x):
@@ -345,6 +360,7 @@ class QueryProxy:
 #   MAIN
 #
 def main():
+    intro()
     logger.info("Starting ThermoBeacon MQTT to SignalK Gateway")
     args = config_parser()
     cmd = args.command
