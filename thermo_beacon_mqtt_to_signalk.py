@@ -48,8 +48,6 @@ RX_CHAR_UUID = '0000fff3-0000-1000-8000-00805F9B34FB'
 
 mqttPrefix = "W/signalk/"
 
-
-
 #
 #   FUNCTIONS
 #
@@ -66,6 +64,7 @@ Config parser for command line arguments
 def config_parser():
     logger.info("Parsing command line arguments")
     parser = ArgumentParser()
+    parser.add_argument('--logfile', help='Path to log file. If not specified, logs will be printed to console only.', required=False)
     subparsers = parser.add_subparsers(help='action', dest='command', required=True)
 
     sub = subparsers.add_parser('scan', help = "Scan for ThermoBeacon devices")
@@ -344,6 +343,17 @@ def main():
     logger.info("Starting ThermoBeacon MQTT to SignalK Gateway")
     args = config_parser()
     cmd = args.command
+
+    # Set up logging to file if logfile argument is provided
+    if args.logfile:
+        logger.info("Logging to file: " + args.logfile)
+        # create file handler which logs even debug messages
+        fh = logging.FileHandler(args.logfile)
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+    # Execute the command based on the parsed arguments
     if cmd=='scan':
         logger.info("Scanning for ThermoBeacon devices...")
         try:
