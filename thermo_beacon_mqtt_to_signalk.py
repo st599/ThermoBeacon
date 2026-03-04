@@ -222,7 +222,7 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
         topicStr += "outside/"
     else:
         topicStr += "inside/"
-    topicStr += location + "/"
+        topicStr += location + "/"
 
     # Temperature
     topicTemp = topicStr + "temperature"
