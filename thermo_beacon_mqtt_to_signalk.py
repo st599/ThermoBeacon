@@ -387,7 +387,7 @@ def main():
     if args.logfile:
         logger.info("Logging to file: " + args.logfile)
         # create file handler which logs even debug messages
-        fh = logging.FileHandler(args.logfile)
+        fh = logging.FileHandler(args.logfile, mode='w')
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
