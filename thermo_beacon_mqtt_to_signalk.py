@@ -20,6 +20,7 @@ import bleak
 import paho.mqtt.client as mqtt
 from bleak import BleakClient, BleakScanner
 import logging
+import time
 
 #
 #   AUTHOR IMPORTS
@@ -283,10 +284,13 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
     if len(Result) == 2:
         logger.warning("No data retrieved from device. MQTT publish will be skipped.")
         return
-    temp_s = Result[37:41]
-    temp_c = float(temp_s)
-    rel_hum_s  = Result[53:57]
-    rel_hum = float(rel_hum_s)
+    Result_split = Result.split(',')
+    temp_s = Result_split[1]
+    temp_ss = temp_s.split(':')
+    temp_c = float(temp_ss[1])
+    rel_hum_s  = Result_split[2]
+    rel_hum_ss = rel_hum_s.split(':')
+    rel_hum = float(rel_hum_ss[1])
     logger.info("Data retrieved from device: Temperature: " + str(temp_c) + "C, Relative Humidity: " + str(rel_hum) + "%")
 
     # Send the data via mqtt to the SignalK server. The topic will be based on the mmsi, location and whether 
@@ -297,15 +301,13 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
     # Temperature
     topicTemp = topicStr + "temperature"
     logger.info("Publishing to topic: " + topicTemp + " value: " + str(temp_c))
-    client.publish(topic = topicTemp, payload = temp_c, qos = 1)
-    client.disconnect()
-
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    client.connect(host = broker, port = port)
+    client.publish(topic = topicTemp, payload = str(temp_c), qos = 1)
+    # Pause
+    #time.sleep(2)
     # Humidity  
-    topicHum = topicStr + "relativeHumidity"
-    logger.info("Publishing to topic: " + topicHum + " value: " + str(rel_hum))
-    client.publish(topic = topicHum, payload = rel_hum, qos = 1)
+    #topicHum = topicStr + "relativeHumidity"
+    #logger.info("Publishing to topic: " + topicHum + " value: " + str(rel_hum))
+    #client.publish(topic = topicHum, payload = str(rel_hum), qos = 1)
     client.disconnect()
     
     logger.info("Data published to MQTT Broker and connection closed")
