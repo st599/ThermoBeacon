@@ -238,8 +238,9 @@ def send_mqtt(SensorMac, SensorQueryDuration_s, broker, port, topic):
     # the data retrieved from the device.
     logger.info("Querying device for data...")
     Result = str(query(SensorMac, SensorQueryDuration_s))
-    if len(Result) == 0:
-        logger.warning("No data retrieved from device. MQTT publish will be skipped.")
+
+    if len(Result) == 2:
+        logger.warning("No data retrieved from device. MQTT publish will be skipped. Result:" + Result)
         return
     logger.info("Data retrieved from device: " + Result)
 
@@ -278,19 +279,15 @@ def send_signalk_via_mqtt(SensorMac, SensorQueryDuration_s, broker, port, mmsi, 
 
 #TODO - the query function is currently returning a string representation of the dictionary. This needs to be fixed to return the dictionary itself so that we can access the temperature and humidity values directly.
     logger.info("Querying device for data...")
-    #Result = str(query(SensorMac, SensorQueryDuration_s))
-    #if len(Result) == 0:
-    #   logger.warning("No data retrieved from device. MQTT publish will be skipped.")
-    #    return
-    #temp_c = Result["temp"]
-    #rel_hum = Result["relhum"]
-    #battery = Result["battery"]
-    #uptime = Result["uptime"]
-    temp_c = 25.2
-    rel_hum = 60.2
-    battery = 80.0
-    uptime = 3600
-    logger.info("Data retrieved from device: Temperature: " + str(temp_c) + "C, Relative Humidity: " + str(rel_hum) + "%, Battery: " + str(battery) + "%, Uptime: " + str(uptime) + "s")
+    Result = str(query(SensorMac, SensorQueryDuration_s))
+    if len(Result) == 2:
+        logger.warning("No data retrieved from device. MQTT publish will be skipped.")
+        return
+    temp_s = Result[37:41]
+    temp_c = float(temp_s)
+    rel_hum_s  = Result[53:57]
+    rel_hum = float(rel_hum_s)
+    logger.info("Data retrieved from device: Temperature: " + str(temp_c) + "C, Relative Humidity: " + str(rel_hum) + "%")
 
     # Send the data via mqtt to the SignalK server. The topic will be based on the mmsi, location and whether 
     # the sensor is outside or inside the boat. The payload will be the temperature and humidity values retrieved from the device.

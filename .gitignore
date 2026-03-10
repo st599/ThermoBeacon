@@ -130,3 +130,7 @@ dmypy.json
 
 #
 .*
+
+# Shell scripts
+*.sh
+*.bash
